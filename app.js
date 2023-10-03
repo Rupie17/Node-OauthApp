@@ -9,6 +9,7 @@ const partials = require('express-partials');
 const session = require('express-session');
 const passport = require('passport');
 const GitHubStrategy = require('passport-github2').Strategy;
+const GoogleStrategy = require('passport-google-oidc').Strategy;
 
 
 const app = express();
@@ -21,6 +22,8 @@ const app = express();
 const PORT = 3000;
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+const GOOGLE_CLIENT_ID=process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET=process.env.GOOGLE_CLIENT_SECRET;
 
 /*
  * Passport Configurations
@@ -43,6 +46,20 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser((user, done) => {
   done(null, user);
 });
+
+passport.use(new GoogleStrategy({
+  clientID: GOOGLE_CLIENT_ID,
+  clientSecret: GOOGLE_CLIENT_SECRET,
+  callbackURL: "/oauth2/redirect/google"
+},
+function(accessToken, refreshToken, profile, done) {
+  //user.findOrCreate({ googleId: profile.id }, function (err, user) {
+    return done(null, profile);
+  }
+  )
+// }
+
+);
 
 
 /*
@@ -93,6 +110,15 @@ app.get('/auth/github',
 app.get('/auth/github/callback',
         passport.authenticate('github', {failureRedirect: '/login', successRedirect: '/'}));
 
+app.get('/auth/google',
+        passport.authenticate('google', { scope: ['profile'] }));
+      
+app.get('/oauth2/redirect/google', 
+        passport.authenticate('google', { failureRedirect: '/login' }),
+        function(req, res) {
+          // Successful authentication, redirect home.
+          res.redirect('/');
+});
 
 /*
  * Listener
